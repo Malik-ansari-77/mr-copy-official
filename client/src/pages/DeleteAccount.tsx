@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, Info, ShieldAlert } from "lucide-react";
-import { getDeletionAuth, signInForAccountDeletion, signOutOfDeletionFlow } from "@/lib/firebase";
+import { getDeletionAuth, invokeDeleteMyAccount, signInForAccountDeletion, signOutOfDeletionFlow } from "@/lib/firebase";
 import { deletionErrorMessage } from "@/lib/deleteAccountErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { p5Schemas } from "@/lib/seo";
@@ -32,14 +32,11 @@ export default function DeleteAccount() {
     if (!user) { setError("Please sign in with Google again before continuing."); setState("idle"); return; }
     setState("deleting"); setError("");
     try {
-      const idToken = await user.getIdToken(true);
-      const response = await fetch("/api/account-delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idToken }) });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; message?: string; deleted?: boolean };
-      if (!response.ok || payload.deleted !== true) throw new Error(deletionErrorMessage(payload));
+      await invokeDeleteMyAccount();
       await signOutOfDeletionFlow();
       setState("success");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Account deletion could not be completed. Please try again later.");
+      setError(deletionErrorMessage(cause));
       setState("ready");
     }
   };
